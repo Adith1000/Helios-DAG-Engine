@@ -279,7 +279,8 @@ int main(int argc, char** argv) {
                 {"id", t.id},
                 {"priority", t.priority},
                 {"runtime", t.runtime},
-                {"script_name", t.script_name}
+                {"script_name", t.script_name},
+                {"pkg_deps", t.pkg_deps}      // <-- workers need this to build the venv
             }.dump();
 
             {

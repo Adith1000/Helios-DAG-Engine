@@ -1,30 +1,49 @@
 [
   {
-    "id": "Data_Generator",
-    "priority": 10,
-    "deps": [],
-    "runtime": "python3",
-    "script_name": "data_gen.py"
-  },
-  {
-    "id": "Processor_1",
-    "priority": 5,
-    "deps": ["Data_Generator"],
-    "runtime": "python3",
-    "script_name": "process_1.py"
-  },
-  {
-    "id": "Processor_2",
-    "priority": 5,
-    "deps": ["Data_Generator"],
-    "runtime": "python3",
-    "script_name": "process_2.py"
-  },
-  {
-    "id": "Final_Report",
+    "id": "Parse_Script",
     "priority": 1,
-    "deps": ["Processor_1", "Processor_2"],
     "runtime": "python3",
-    "script_name": "report.py"
+    "script_name": "1_parse.py",
+    "pkg_deps": []
+  },
+  {
+    "id": "Search_Refs",
+    "priority": 2,
+    "deps": ["Parse_Script"],
+    "runtime": "python3",
+    "script_name": "2_search.py",
+    "pkg_deps": ["ddgs"]
+  },
+  {
+    "id": "Generate_Audio",
+    "priority": 3,
+    "deps": ["Parse_Script"],
+    "runtime": "python3",
+    "script_name": "3_audio.py",
+    "pkg_deps": ["gtts", "requests"]
+  },
+  {
+    "id": "Generate_Images",
+    "priority": 4,
+    "deps": ["Search_Refs"],
+    "runtime": "python3",
+    "script_name": "4_midjourney.py",
+    "pkg_deps": ["requests", "urllib3", "huggingface_hub", "pillow"]
+  },
+  {
+    "id": "Generate_Video",
+    "priority": 5,
+    "deps": ["Generate_Images"],
+    "runtime": "python3",
+    "script_name": "5_runway.py",
+    "pkg_deps": ["requests", "runwayml"]
+  },
+  {
+    "id": "Final_Render",
+    "priority": 6,
+    "deps": ["Generate_Video", "Generate_Audio"],
+    "runtime": "python3",
+    "script_name": "6_render.py",
+    "pkg_deps": ["moviepy>=2.0"]
   }
 ]

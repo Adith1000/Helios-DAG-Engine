@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # Helios-DAG — polyglot image.
-# Stage 1 compiles the C++ binaries; stage 2 is a slim runtime that carries
-# only the shared libs plus the end-user runtimes (python3, nodejs).
+# Stage 1 compiles the C++ binaries; stage 2 carries the shared libs plus the
+# end-user runtimes AND their package managers (pip/venv, npm).
 
 ############################
 # Stage 1: build
@@ -20,9 +20,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /src
 
-# Bring in the build definition and sources. `include/` is expected to hold the
-# project headers plus the vendored header-only deps (httplib.h, and zmq.hpp if
-# you don't rely on the cppzmq-dev package above).
 COPY CMakeLists.txt ./
 COPY include/ ./include/
 COPY src/ ./src/
@@ -32,22 +29,28 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
     && test -x build/master_node && test -x build/worker_node
 
 ############################
-# Stage 2: runtime
+# Stage 2: runtime  (UPDATED — polyglot dependency resolution)
 ############################
 FROM ubuntu:22.04 AS runtime
 
+# Non-interactive apt + a default timezone so transitive packages (e.g. tzdata
+# pulled by some toolchains) never block the build on a prompt.
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libzmq5 \
         python3 \
-        nodejs \
+        python3-venv \
+        python3-pip \
         ca-certificates \
+        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /app
 COPY --from=build /src/build/master_node /usr/local/bin/master_node
 COPY --from=build /src/build/worker_node /usr/local/bin/worker_node
 
-# The artifact server resolves scripts relative to the working dir (./scripts).
-# docker-compose mounts the host scripts/ and tasks.json into /app.
+# Overridden by docker-compose (worker runs worker_node).
 CMD ["master_node", "/app/tasks.json"]

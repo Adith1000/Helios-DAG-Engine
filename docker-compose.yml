@@ -33,6 +33,11 @@ services:
     command: ["worker_node"]
     environment:
       - MASTER_IP=master        # resolves via the compose network
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - FLUX_API_KEY=${FLUX_API_KEY}
+      - RUNWAYML_API_KEY=${RUNWAYML_API_KEY}
+    volumes:
+      - ./output:/app/output
     depends_on:
       - master
     networks:

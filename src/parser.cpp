@@ -8,7 +8,6 @@ std::vector<Task> load_tasks(const std::string& filename) {
         throw std::runtime_error("Cannot open file: " + filename);
     }
 
-    // Parse the JSON array
     nlohmann::json j = nlohmann::json::parse(in);
 
     std::vector<Task> tasks;
@@ -16,12 +15,14 @@ std::vector<Task> load_tasks(const std::string& filename) {
         Task t;
         t.id       = item.at("id").get<std::string>();
         t.priority = item.at("priority").get<int>();
-        t.deps     = item.at("deps").get<std::vector<std::string>>();
-        // New stateless-artifact fields. Optional so existing task graphs
-        // (no runtime/script_name) still parse; such tasks become no-ops on
-        // the worker and report "failed: unsupported runtime" cleanly.
+        // deps is OPTIONAL. The root task legitimately has no dependencies and
+        // omits the key; using .at() here threw json.out_of_range.403 on it and
+        // killed the master before any task was dispatched.
+        t.deps     = item.value("deps", std::vector<std::string>{});
+        // Stateless-artifact + polyglot fields. All optional for backward compat.
         t.runtime     = item.value("runtime", "");
         t.script_name = item.value("script_name", "");
+        t.pkg_deps    = item.value("pkg_deps", std::vector<std::string>{});
         tasks.push_back(std::move(t));
     }
     return tasks;
