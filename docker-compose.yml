@@ -1,0 +1,45 @@
+# Helios-DAG Quickstart
+#
+#   docker compose build
+#   docker compose up --scale worker=3
+#
+# Only `master` builds the image; `worker` reuses the same tag.
+#   - One builder => no parallel race exporting the same tag
+#     (that was the "image ... already exists" error).
+#   - pull_policy: never => Compose uses the locally-built image instead of
+#     trying to pull it from a registry (that was the original
+#     "pull access denied for helios-dag" error).
+
+services:
+  master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: helios-dag:latest
+    command: ["master_node", "/app/tasks.json"]
+    working_dir: /app
+    ports:
+      - "8080:8080"           # Prometheus-style metrics  (/metrics)
+      - "5555-5558:5555-5558" # ZeroMQ: push/pull/heartbeat/artifacts
+    volumes:
+      - ./tasks.json:/app/tasks.json:ro
+      - ./scripts:/app/scripts:ro
+    networks:
+      - helios
+
+  worker:
+    image: helios-dag:latest   # reuses the image built by `master`
+    pull_policy: never         # don't try to pull; the local build is authoritative
+    command: ["worker_node"]
+    environment:
+      - MASTER_IP=master        # resolves via the compose network
+    depends_on:
+      - master
+    networks:
+      - helios
+    deploy:
+      replicas: 3               # default fleet size; override with --scale worker=N
+
+networks:
+  helios:
+    driver: bridge
